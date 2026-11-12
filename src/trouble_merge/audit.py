@@ -36,6 +36,9 @@ class Audit:
         lines.append("확인 필요 건수: %d" % self.check_count)
         lines.append("중복 의심 건수: %d" % self.duplicate_count)
         lines.append("읽은 파일 수: %d" % self.files_read)
+        if self.files_read == 0:
+            # 0행 대 0행이라 '행 수 일치: 예'가 나오므로 정상 처리로 오해하지 않게 분명히 적는다
+            lines.append("처리 결과: 처리된 파일 없음")
         if self.failed_files:
             lines.append("실패한 파일: " + ", ".join(log.file_label(f) for f in self.failed_files))
         else:
