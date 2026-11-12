@@ -12,9 +12,16 @@ from pathlib import Path
 from .audit import Audit, write_name_map
 from .mapping import ConfigError, detect_format, header_name, load_conversions, load_formats
 from .merge import convert_rows, mark_duplicates, sort_records
-from .reader import is_readable_extension, list_inputs, read_workbook
+from .reader import (
+    check_size_limits, exceeds_row_limit, is_readable_extension, list_inputs, read_workbook,
+)
 from .safe_log import SafeLog
 from .writer import write_workbook
+
+# 입력 파일 방어 상한의 기본값(NFR-007). 데모용 값이며 실제 업무에서는 옵션으로 바꾼다.
+DEFAULT_MAX_FILE_MB = 50
+DEFAULT_MAX_UNZIPPED_MB = 200
+DEFAULT_MAX_ROWS = 100000
 
 UNMATCHED_TEXT = {
     "none": "대응 규칙 없음 시트",
@@ -28,6 +35,12 @@ def build_parser():
     parser.add_argument("--input", nargs="+", required=True, help="폴더 또는 파일")
     parser.add_argument("--config", required=True, help="column_map.csv, conversion_map.csv가 있는 폴더")
     parser.add_argument("--out", required=True, help="출력 폴더")
+    parser.add_argument("--max-file-mb", type=float, default=DEFAULT_MAX_FILE_MB,
+                        help="파일 크기 상한(MB). 넘는 파일은 건너뛴다")
+    parser.add_argument("--max-unzipped-mb", type=float, default=DEFAULT_MAX_UNZIPPED_MB,
+                        help="압축 해제 후 크기 상한(MB). 넘는 파일은 건너뛴다")
+    parser.add_argument("--max-rows", type=int, default=DEFAULT_MAX_ROWS,
+                        help="시트당 행 수 상한(헤더 포함). 넘는 파일은 건너뛴다")
     parser.add_argument("--show-names", action="store_true",
                         help="로그·감사 결과에 실제 파일명·시트명을 낸다(기본은 마스킹)")
     return parser
@@ -41,6 +54,13 @@ def main(argv=None):
     except Exception:  # 메시지와 종류를 모두 버리고 고정 문구만 낸다
         print("처리 중 예기치 못한 오류", file=sys.stderr)
         return 2
+
+
+def skip_over_limit(audit, log, name, kind):
+    """상한을 넘은 파일은 그 파일만 건너뛰고 사유 종류만 남긴다(NFR-007). 행은 입력 행 수에 넣지 않는다."""
+    audit.failed_files.append(name)
+    audit.limit_exceeded.append((name, kind))
+    log.log("상한 초과(%s)" % kind, file=name)
 
 
 def run(args):
@@ -68,11 +88,18 @@ def run(args):
             audit.failed_files.append(name)
             log.log("건너뜀(지원하지 않는 형식)", file=name)
             continue
+        kind = check_size_limits(path, args.max_file_mb, args.max_unzipped_mb)
+        if kind is not None:
+            skip_over_limit(audit, log, name, kind)
+            continue
         try:
             sheets, hidden, formula_missing = read_workbook(path)
         except Exception:  # 예외 종류·메시지 모두 버린다(내부 이름이나 셀 값이 섞일 수 있다)
             audit.failed_files.append(name)
             log.log("열기 실패", file=name)
+            continue
+        if exceeds_row_limit(sheets, args.max_rows):
+            skip_over_limit(audit, log, name, "행 수")
             continue
 
         audit.hidden.append((name, hidden))

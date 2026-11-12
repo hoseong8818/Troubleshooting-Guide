@@ -15,6 +15,7 @@ class Audit:
         self.duplicate_count = 0
         self.files_read = 0
         self.failed_files = []       # 파일명
+        self.limit_exceeded = []     # (파일명, 사유 종류) 크기·행 수 상한 초과(NFR-007)
         self.unmatched = []          # (사유 문구, 파일명, 시트명)
         self.unregistered = []       # (파일명, 시트명, 컬럼 표시)
         self.blank_required = []     # (파일명, 시트명, 행 번호, 컬럼 표시)
@@ -43,6 +44,8 @@ class Audit:
             lines.append("실패한 파일: " + ", ".join(log.file_label(f) for f in self.failed_files))
         else:
             lines.append("실패한 파일: 없음")
+        for file, kind in self.limit_exceeded:
+            lines.append("상한 초과 파일: %s %s" % (log.file_label(file), kind))
         for reason, file, sheet in self.unmatched:
             lines.append("%s: %s %s" % (reason, log.file_label(file), log.sheet_label(sheet)))
         for file, sheet, label in self.unregistered:
