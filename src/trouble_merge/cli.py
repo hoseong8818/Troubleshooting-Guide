@@ -112,14 +112,19 @@ def run(args):
         else:
             audit.failed_files.append(name)
 
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     if audit.files_read == 0:
+        # 통합 파일은 만들지 않지만, 어느 파일이 왜 빠졌는지는 감사 결과로 남긴다
         log.log("처리할 수 있는 파일이 없다")
+        Path(args.out).mkdir(parents=True, exist_ok=True)
+        audit.write(args.out, stamp)
+        write_name_map(log, args.out, stamp)
         return 2
 
     mark_duplicates(records)
     records = sort_records(records)
 
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     _, audit.prefixed = write_workbook(records, args.out, stamp)
     audit.output_rows = len(records)
     audit.check_count = sum(1 for r in records if r["확인 필요 이유"] is not None)
