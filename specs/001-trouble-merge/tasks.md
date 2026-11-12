@@ -97,6 +97,7 @@
 - [ ] T043a [P] [US4] `tests/test_output_name.py`: 출력 파일이 이미 있으면 덮어쓰지 않고 새 이름으로 만듦
 - [ ] T043b [P] [US3] `tests/test_all_failed_audit.py`: 전부 실패해도 통합 엑셀은 만들지 않고 감사 결과와 이름 대응표는 남김
 - [ ] T043c [P] [US3] `tests/test_all_failed_notice.py`: 전부 실패하면 감사 결과에 `처리 결과: 처리된 파일 없음` 줄을 내고, 정상 실행에는 내지 않음
+- [ ] T051a [P] [US4] `tests/test_format_options.py`: 헤더 행시트 이름 지정, 대응 중복 양식, 컬럼명 30자 제한(FR-017, NFR-009)
 - [ ] T044 [US4] 테스트가 실패하는 것을 확인하고 실패 상태로 커밋(T041~T043a 이후)
 - [ ] T045 [US4] `cli.py`와 `merge.py`: 여러 파일 순회, 실패 파일 건너뛰기(T044 이후)
 - [ ] T046 [US4] 통과 확인, 감사관 판정, 커밋
