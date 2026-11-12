@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 현재 상태
 
-아직 구현 코드가 없다. `docs/`와 `specs/001-trouble-merge/`의 문서(헌법 v1.2.0, 요청, 명세, 계획, 작업 목록, 보안 검토 제안서)만 있다. git 저장소는 초기화했고(브랜치 `main`, 문서 첫 커밋 완료, T001 끝) 보호 훅은 아직 없어 커밋만으로는 보호되지 않는다(T005 이후). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
+아직 구현 코드가 없다. `docs/`와 `specs/001-trouble-merge/`의 문서(헌법 v1.2.0, 요청, 명세, 계획, 작업 목록, 보안 검토 제안서)만 있다. git 저장소는 초기화했고(브랜치 `main`, 문서 첫 커밋 완료, T001 끝) 보호 훅(`protect_files.py`)은 구현·등록했고(T005 완료), 보호할 파일(가짜 데이터·정답·테스트)을 만들어 커밋하는 T012부터 실질적으로 보호된다. 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
 
 ## 이 도구가 하는 일
 
@@ -44,6 +44,6 @@ python .claude/hooks/hook_test.py           # 보호 훅 시험 (FAIL 0이어야
 - 출력은 `out/`에 쓰며 덮어쓰지 않고 이미 있으면 실행 시각을 붙인다. 열 수 없는 파일은 건너뛰고 감사에 보고하되, 전부 실패하면 통합 파일을 만들지 않고 멈춘다.
 - 처리 시간 상한(NFR-005)은 보류 중이므로 처리 시간을 설계 기준으로 삼지 않는다.
 
-## 보호 장치 (구현 예정)
+## 보호 장치 (훅 구현·등록 완료)
 
 `.claude/settings.json`의 deny(저장소 밖 실제 폴더 3곳, 다운로드·바탕화면)와 PreToolUse 훅 `protect_files.py`(git 추적 파일 차단, 입력·git 상태를 모르면 차단, `realpath`로 경로 해석). 첫 커밋 전에는 모든 파일이 미추적이라 훅이 막지 못하므로, 가짜 데이터·정답·비교 테스트를 만든 직후 커밋해 보호를 켜고, 사람이 보호 파일의 SHA-256 목록을 저장소 밖에 보관해 Phase마다 대조한다. 네이티브 Windows에는 샌드박스가 없어 운영체제 권한(NTFS 권한 또는 별도 계정·WSL)을 병행하고, 그래도 남는 우회 길은 README의 '남은 위험'에 적는다. 근거와 선택 기록은 `docs/security-review-proposal.md`.

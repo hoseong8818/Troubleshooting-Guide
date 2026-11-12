@@ -24,5 +24,18 @@
       "PowerShell(*Downloads*)",
       "PowerShell(*Desktop*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_files.py\""
+          }
+        ]
+      }
+    ]
   }
 }
