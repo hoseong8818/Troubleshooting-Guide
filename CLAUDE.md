@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 현재 상태
 
-아직 구현 코드가 없다. `docs/`와 `specs/001-trouble-merge/`의 문서(헌법, 요청, 명세, 계획, 작업 목록)만 있고, git 저장소도 아니다(`tasks.md`의 T001이 `git init`). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
+아직 구현 코드가 없다. `docs/`와 `specs/001-trouble-merge/`의 문서(헌법 v1.2.0, 요청, 명세, 계획, 작업 목록, 보안 검토 제안서)만 있다. git 저장소는 초기화했고(브랜치 `main`, 문서 첫 커밋 완료, T001 끝) 보호 훅은 아직 없어 커밋만으로는 보호되지 않는다(T005 이후). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
 
 ## 이 도구가 하는 일
 
