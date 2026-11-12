@@ -46,18 +46,3 @@ def write_workbook(records, out_dir, stamp):
     wb.save(path)
     return path, prefixed
 
-
-def write_audit(out_dir, stamp, summary):
-    """감사 결과 텍스트를 쓴다. summary는 이름과 숫자(또는 짧은 문구)만 담는다. 셀 값은 넣지 않는다."""
-    lines = ["감사 결과", ""]
-    lines.append("입력 행 수: %d" % summary["input_rows"])
-    lines.append("출력 행 수: %d" % summary["output_rows"])
-    lines.append("행 수 일치: %s" % ("예" if summary["input_rows"] == summary["output_rows"] else "아니오"))
-    lines.append("읽은 파일 수: %d" % summary["files_read"])
-    lines.append("건너뛰거나 실패한 파일 수: %d" % summary["files_failed"])
-    lines.append("대응 규칙이 없거나 양식이 모호한 시트 수: %d" % summary["sheets_unmatched"])
-    lines.append("숨긴 시트 수: %d" % summary["hidden_sheets"])
-    lines.append("수식 방지 접두사 처리 건수: %d" % summary["prefixed"])
-    path = unique_path(out_dir, "audit_" + stamp, ".txt", stamp)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return path

@@ -30,6 +30,12 @@ class Format:
     def source_names(self):
         return [source for source, _ in self.columns]
 
+    def source_of(self, standard):
+        for src, std in self.columns:
+            if std == standard:
+                return src
+        return None
+
     def standard_of(self, source):
         for src, std in self.columns:
             if src == source:

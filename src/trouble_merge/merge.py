@@ -9,6 +9,7 @@ OUTPUT_HEADER = [
     "확인 필요 이유", "원래 값", "중복 의심", "원본 파일", "원본 시트", "원본 행",
 ]
 DUPLICATE_MARK = "중복 의심"
+REQUIRED_STANDARD = ("설비", "증상", "원인", "조치")  # FR-013
 
 
 def convert_rows(file_name, sheet, fmt, conversions):
@@ -44,6 +45,9 @@ def convert_rows(file_name, sheet, fmt, conversions):
 
         record = dict(final)
         record.update({
+            # 감사 결과용(통합 시트에는 쓰지 않는다): 필수값이 빈 표준 컬럼
+            "_blank": [c for c in REQUIRED_STANDARD
+                       if final[c] == CHECK and text(raw[c]) is None],
             "기타 항목": "; ".join(parts) if parts else None,
             "확인 필요 이유": "; ".join(reasons) if reasons else None,
             "원래 값": "; ".join(originals) if originals else None,
