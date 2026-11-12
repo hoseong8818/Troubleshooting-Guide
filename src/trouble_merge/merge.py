@@ -64,12 +64,16 @@ def mark_duplicates(records):
     """설비·일자·증상이 모두 같은 행에 '중복 의심'을 표시한다. 행은 지우지 않는다(FR-010).
 
     설비, 일자, 증상 중 하나라도 '확인 필요'인 행은 비교에서 뺀다.
+    일자가 빈 행은 같은 파일의 같은 시트 안에서만 비교한다. 일자도 없이 파일을 넘어 같은 설비·증상이
+    겹치는 것은 같은 사건이라 볼 근거가 약하다. 일자가 있는 행은 파일이 달라도 비교한다.
     """
     groups = {}
     for record in records:
         if CHECK in (record["설비"], record["일자"], record["증상"]):
             continue
         key = (record["설비"], record["일자"], record["증상"])
+        if not record["일자"]:
+            key += (record["원본 파일"], record["원본 시트"])
         groups.setdefault(key, []).append(record)
     for group in groups.values():
         if len(group) > 1:
