@@ -1,11 +1,7 @@
-"""표준 컬럼으로 옮기기, 기타 항목, 분류 변환, 중복 의심, 정렬 (T022).
+"""표준 컬럼으로 옮기기, 기타 항목, 확인 필요, 중복 의심, 정렬 (T022, T029)."""
 
-Phase 3 범위다. '확인 필요' 판정(check.py)은 Phase 4에서 더하므로, 지금은 변환표에 없는
-설비·분류는 정리한 원래 값을 그대로 쓰고 '확인 필요' 칸은 비워 둔다.
-"""
-
-from .dates import parse_date
-from .mapping import header_name, norm_key
+from .check import CHECK, judge, text
+from .mapping import header_name
 from .reader import is_blank
 
 OUTPUT_HEADER = [
@@ -13,12 +9,6 @@ OUTPUT_HEADER = [
     "확인 필요 이유", "원래 값", "중복 의심", "원본 파일", "원본 시트", "원본 행",
 ]
 DUPLICATE_MARK = "중복 의심"
-
-
-def _text(value):
-    if is_blank(value):
-        return None
-    return str(value).strip()
 
 
 def convert_rows(file_name, sheet, fmt, conversions):
@@ -43,49 +33,38 @@ def convert_rows(file_name, sheet, fmt, conversions):
             index = mapped.get(standard)
             return row[index] if index is not None and index < len(row) else None
 
-        equipment = _text(cell("설비"))
-        if equipment is not None:
-            equipment = conversions["설비"].get(norm_key(equipment), equipment)
-        category = _text(cell("분류"))
-        if category is not None:
-            category = conversions["분류"].get(norm_key(category), category)
-
-        raw_date = cell("일자")
-        if is_blank(raw_date):
-            date_text = None
-        else:
-            date_text = parse_date(raw_date) or _text(raw_date)  # 해석 불가 처리는 Phase 4
+        raw = {c: cell(c) for c in ("설비", "일자", "증상", "원인", "조치", "분류")}
+        final, reasons, originals = judge(raw, conversions)
 
         parts = []
         for index, name in others:
-            value = _text(row[index]) if index < len(row) else None
+            value = text(row[index]) if index < len(row) else None
             if value is not None:
                 parts.append("%s: %s" % (name, value))
 
-        records.append({
-            "설비": equipment,
-            "일자": date_text,
-            "증상": _text(cell("증상")),
-            "원인": _text(cell("원인")),
-            "조치": _text(cell("조치")),
-            "분류": category,
+        record = dict(final)
+        record.update({
             "기타 항목": "; ".join(parts) if parts else None,
-            "확인 필요 이유": None,
-            "원래 값": None,
+            "확인 필요 이유": "; ".join(reasons) if reasons else None,
+            "원래 값": "; ".join(originals) if originals else None,
             "중복 의심": None,
             "원본 파일": file_name,
             "원본 시트": sheet.name,
             "원본 행": number,
         })
+        records.append(record)
     return records
 
 
 def mark_duplicates(records):
-    """설비·일자·증상이 모두 같은 행에 '중복 의심'을 표시한다. 행은 지우지 않는다(FR-010)."""
+    """설비·일자·증상이 모두 같은 행에 '중복 의심'을 표시한다. 행은 지우지 않는다(FR-010).
+
+    설비, 일자, 증상 중 하나라도 '확인 필요'인 행은 비교에서 뺀다.
+    """
     groups = {}
     for record in records:
-        if record["설비"] is None or record["증상"] is None:
-            continue  # 판단 불가 행은 비교에서 뺀다(Phase 4에서 '확인 필요'로 바뀐다)
+        if CHECK in (record["설비"], record["일자"], record["증상"]):
+            continue
         key = (record["설비"], record["일자"], record["증상"])
         groups.setdefault(key, []).append(record)
     for group in groups.values():
@@ -95,7 +74,10 @@ def mark_duplicates(records):
 
 
 def sort_records(records):
+    """설비, 일자, 원본 파일, 원본 행 순. 설비가 '확인 필요'인 행은 맨 아래(FR-016)."""
     return sorted(
         records,
-        key=lambda r: (r["설비"] or "", r["일자"] or "", r["원본 파일"], r["원본 행"]),
+        key=lambda r: (
+            r["설비"] == CHECK, r["설비"] or "", r["일자"] or "", r["원본 파일"], r["원본 행"],
+        ),
     )
