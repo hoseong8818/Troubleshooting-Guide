@@ -41,7 +41,7 @@
 
 완료 조건: `A_basic` 입력이 정답(`A_basic_expected.xlsx`)과 한 행씩 일치하고, 행 수가 같고, 기타 항목과 분류 변환이 맞는다. `A_trap`은 Phase 4에서 다룬다.
 
-- [ ] T013 [P] [US1] `tests/test_compare.py`: `A_basic` 통합 결과를 `expected/A_basic_expected.xlsx`와 한 행씩 비교. 출력은 임시 폴더에 쓴다
+- [ ] T013 [P] [US1] `tests/test_compare.py`: `A_basic` 통합 결과를 `expected/A_basic_expected.xlsx`와 한 행씩 비교. 출력은 임시 폴더에 쓴다  - 공용 파일: `tests/__init__.py`, `tests/support.py`
 - [ ] T014 [P] [US1] `tests/test_row_count.py`: 입력과 출력 행 수 일치(빈 행 제외 규칙 포함)
 - [ ] T015 [P] [US1] `tests/test_other_columns.py`: 표준에 없는 컬럼이 `이름: 값`으로 보관됨
 - [ ] T016 [P] [US1] `tests/test_dates.py`: 날짜 세 형식이 `YYYY-MM-DD`로 통일됨
@@ -95,6 +95,7 @@
 - [ ] T042b [P] [US4] `tests/test_multi_sheet.py`: 보이는 시트 여러 개 읽기, 시트별 양식 판별, `veryHidden` 시트 제외
 - [ ] T043 [P] [US4] `tests/test_partial_failure.py`: 열 수 없는 파일은 건너뛰고 나머지는 처리하며(종료 코드 1) 전부 실패하면 멈춤(종료 코드 2)
 - [ ] T043a [P] [US4] `tests/test_output_name.py`: 출력 파일이 이미 있으면 덮어쓰지 않고 새 이름으로 만듦
+- [ ] T043b [P] [US3] `tests/test_all_failed_audit.py`: 전부 실패해도 통합 엑셀은 만들지 않고 감사 결과와 이름 대응표는 남김
 - [ ] T044 [US4] 테스트가 실패하는 것을 확인하고 실패 상태로 커밋(T041~T043a 이후)
 - [ ] T045 [US4] `cli.py`와 `merge.py`: 여러 파일 순회, 실패 파일 건너뛰기(T044 이후)
 - [ ] T046 [US4] 통과 확인, 감사관 판정, 커밋
