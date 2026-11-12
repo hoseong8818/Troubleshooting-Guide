@@ -11,14 +11,15 @@
 
 ## 설치
 
-- Python 3.13
+- Python 3.13 (테스트한 버전: 3.13.14)
 - 외부 패키지는 `openpyxl` 하나입니다. `defusedxml`은 있으면 쓰고 없어도 됩니다.
+- 버전은 `requirements.txt`에 고정했습니다: `openpyxl==3.1.5`, 그 의존 패키지 `et_xmlfile==2.0.0` (테스트를 통과한 개발 PC의 버전).
 
 ```bash
-python -m pip install openpyxl==<고정할 버전>
+python -m pip install -r requirements.txt
 ```
 
-> TODO(사람): 버전을 확정하고 `requirements.txt`를 만들어 커밋합니다. 설치 파일은 공식 배포처에서 받고 해시를 대조합니다(T048). 지금 저장소에는 `requirements.txt`가 없습니다.
+> TODO(사람): 설치 파일은 공식 배포처(또는 사내 미러, IT가 승인한 파일)에서 받고 해시를 대조합니다(T048). 해시 값은 사람이 받은 파일로 확인해 `requirements.txt`에 `--hash`로 넣거나 별도로 기록합니다.
 
 ## 실행
 
