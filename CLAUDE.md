@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 현재 상태
 
-구현은 Phase 6까지 끝났고 테스트 74개가 통과한다(`src/trouble_merge/`, `tests/`). 보호 훅(`protect_files.py`)은 구현등록했고 보호할 파일은 모두 커밋되어 실제로 보호된다. 데모 범위에서는 입력 크기행 수 상한(NFR-007), 운영체제 권한, 회사 PC 확인을 하지 않았고 실제 업무 이관 시 T050에서 한다(README 참고). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
+구현은 Phase 6까지 끝났고 테스트 74개가 통과한다(`src/trouble_merge/`, `tests/`). 보호 훅(`protect_files.py`)은 구현·등록했고 보호할 파일은 모두 커밋되어 실제로 보호된다. 데모 범위에서는 입력 크기·행 수 상한(NFR-007), 운영체제 권한, 회사 PC 확인을 하지 않았고 실제 업무 이관 시 T050에서 한다(README 참고). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
 
 ## 이 도구가 하는 일
 
