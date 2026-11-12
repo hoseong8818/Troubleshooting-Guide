@@ -4,6 +4,7 @@
 """
 
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -107,6 +108,67 @@ def read_workbook(path):
     finally:
         wb.close()
     return sheets, hidden, formula_missing
+
+
+def _normalize_excel_value(value):
+    """COM이 돌려준 값을 openpyxl 경로와 같은 모양으로 맞춘다(날짜는 시간대 없는 datetime)."""
+    if hasattr(value, "year") and hasattr(value, "tzinfo"):
+        return datetime(value.year, value.month, value.day, value.hour, value.minute, value.second)
+    return value
+
+
+def read_workbook_excel(path):
+    """설치된 엑셀을 조종해 읽는다(NFR-006). 반환 형식은 read_workbook과 같다.
+
+    파일은 읽기 전용으로 열고, 엑셀은 항상 닫는다. 값은 엑셀이 연 창에서 읽으므로
+    엑셀만 열 수 있는 파일도 같은 코드로 읽는다.
+    """
+    import win32com.client  # pywin32. 이 경로를 쓸 때만 필요하다
+
+    app = win32com.client.DispatchEx("Excel.Application")
+    wb = None
+    try:
+        app.Visible = False
+        app.DisplayAlerts = False
+        wb = app.Workbooks.Open(str(Path(path).resolve()), 0, True)  # UpdateLinks=0, ReadOnly=True
+        sheets = []
+        hidden = 0
+        formula_missing = 0
+        for ws in wb.Worksheets:
+            if ws.Visible != -1:  # xlSheetVisible
+                hidden += 1
+                continue
+            used = ws.UsedRange
+            top, left = used.Row, used.Column
+            rows, cols = used.Rows.Count, used.Columns.Count
+            values = used.Value
+            formulas = used.Formula
+            if rows == 1 and cols == 1:
+                values, formulas = ((values,),), ((formulas,),)
+            grid = [[None] * (left - 1 + cols) for _ in range(top - 1 + rows)]
+            for r in range(rows):
+                for c in range(cols):
+                    value = values[r][c]
+                    grid[top - 1 + r][left - 1 + c] = _normalize_excel_value(value)
+                    formula = formulas[r][c]
+                    if value is None and isinstance(formula, str) and formula.startswith("="):
+                        formula_missing += 1
+            if used.MergeCells is not False:  # 병합 칸이 있을 때만 하나씩 확인한다
+                for r in range(rows):
+                    for c in range(cols):
+                        cell = used.Cells(r + 1, c + 1)
+                        if cell.MergeCells:
+                            area = cell.MergeArea
+                            fill = _normalize_excel_value(area.Cells(1, 1).Value)
+                            grid[top - 1 + r][left - 1 + c] = fill
+            sheets.append(SheetData(ws.Name, grid))
+        return sheets, hidden, formula_missing
+    finally:
+        try:
+            if wb is not None:
+                wb.Close(False)
+        finally:
+            app.Quit()
 
 
 def is_blank(value):

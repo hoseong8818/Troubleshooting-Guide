@@ -14,6 +14,7 @@ from .mapping import ConfigError, detect_format, header_name, load_conversions, 
 from .merge import convert_rows, mark_duplicates, sort_records
 from .reader import (
     check_size_limits, exceeds_row_limit, is_readable_extension, list_inputs, read_workbook,
+    read_workbook_excel,
 )
 from .safe_log import SafeLog
 from .writer import write_workbook
@@ -41,6 +42,8 @@ def build_parser():
                         help="압축 해제 후 크기 상한(MB). 넘는 파일은 건너뛴다")
     parser.add_argument("--max-rows", type=int, default=DEFAULT_MAX_ROWS,
                         help="시트당 행 수 상한(헤더 포함). 넘는 파일은 건너뛴다")
+    parser.add_argument("--open-with", choices=("openpyxl", "excel"), default="openpyxl",
+                        help="파일 여는 방법. excel은 설치된 엑셀을 조종한다(pywin32 필요)")
     parser.add_argument("--show-names", action="store_true",
                         help="로그·감사 결과에 실제 파일명·시트명을 낸다(기본은 마스킹)")
     return parser
@@ -93,7 +96,8 @@ def run(args):
             skip_over_limit(audit, log, name, kind)
             continue
         try:
-            sheets, hidden, formula_missing = read_workbook(path)
+            reader = read_workbook_excel if args.open_with == "excel" else read_workbook
+            sheets, hidden, formula_missing = reader(path)
         except Exception:  # 예외 종류·메시지 모두 버린다(내부 이름이나 셀 값이 섞일 수 있다)
             audit.failed_files.append(name)
             log.log("열기 실패", file=name)
