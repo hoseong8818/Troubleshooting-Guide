@@ -14,9 +14,9 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 `C:\mywork`에서 `git init`, `.gitignore`(`out/`, `__pycache__/`, `.env`, `data/real/`), 폴더 뼈대(`src/trouble_merge`, `tests`, `config`, `data/fake`, `expected`, `tools`, `out`) 만들기
-- [ ] T002 [P] `CLAUDE.md` 초안(실행·테스트 명령, 폴더 구조, 헌법 요약, 200줄 미만)
-- [ ] T003 [P] `.claude/settings.json`에 deny 규칙(저장소 밖 실제 폴더 3곳과 다운로드·바탕화면, `data/real`을 쓰면 그것도: Read, Grep, Glob, Bash, PowerShell)과 훅 등록 자리 만들기. 이 파일은 사람이 만든다
+- [x] T001 `C:\mywork`에서 `git init`, `.gitignore`(`out/`, `__pycache__/`, `.env`, `data/real/`), 폴더 뼈대(`src/trouble_merge`, `tests`, `config`, `data/fake`, `expected`, `tools`, `out`) 만들기
+- [x] T002 [P] `CLAUDE.md` 초안(실행·테스트 명령, 폴더 구조, 헌법 요약, 200줄 미만)
+- [x] T003 [P] `.claude/settings.json`에 deny 규칙(저장소 밖 실제 폴더 3곳과 다운로드·바탕화면, `data/real`을 쓰면 그것도: Read, Grep, Glob, Bash, PowerShell)과 훅 등록 자리 만들기. 이 파일은 사람이 만든다
 - [ ] T003a [사람] 실제 데이터 폴더 3곳(`real_data`, `real_out`, `real_config`)의 위치를 정하고, IT와 함께 운영체제 권한(NTFS 권한 또는 Claude를 별도 계정·WSL·VM에서 실행)을 설정한다. 설정 날짜를 기록한다(헌법 원칙 1)
 - [ ] T003b [사람] 정보보호 부서에 확인한다: 컬럼명을 AI에 알려도 되는지, 설비 코드·분류명이 기밀인지, 입력 파일 크기·행 수 상한 숫자(NFR-007)
 
@@ -24,7 +24,7 @@
 
 완료 조건: 보호 훅이 시도 목록을 모두 막고, 가짜 데이터와 정답과 규칙 표 초안이 있고, 커밋으로 보호가 켜진 상태.
 
-- [ ] T004 `.claude/hooks/hook_test.py`: 보호 대상 수정 시도 목록(Edit, Write, PowerShell 복사, Python 저장, 경로를 변수에 담기, 입력이 깨진 경우, git 실행 실패, `..`·역슬래시·대소문자 변형 경로, `git add`만 한 파일, 보호 장치 자체 수정, 삭제·이름 변경(`rm`, `del`, `ren`, `Remove-Item`), `git rm --cached`·`reset`·`restore`·`stash`·`config`, 8.3 짧은 이름·정션·`\\?\`·대체 데이터 스트림 경로, `.claude/settings.local.json` 새로 만들기, `tasks.md`에 없는 보호 폴더 새 파일, `docs/constitution.md`·`CLAUDE.md`·`specs/` 수정, `python -c`로 실제 폴더 열기)을 먼저 쓴다. 지금은 FAIL이어야 한다.
+- [x] T004 `.claude/hooks/hook_test.py`: 보호 대상 수정 시도 목록(Edit, Write, PowerShell 복사, Python 저장, 경로를 변수에 담기, 입력이 깨진 경우, git 실행 실패, `..`·역슬래시·대소문자 변형 경로, `git add`만 한 파일, 보호 장치 자체 수정, 삭제·이름 변경(`rm`, `del`, `ren`, `Remove-Item`), `git rm --cached`·`reset`·`restore`·`stash`·`config`, 8.3 짧은 이름·정션·`\\?\`·대체 데이터 스트림 경로, `.claude/settings.local.json` 새로 만들기, `tasks.md`에 없는 보호 폴더 새 파일, `docs/constitution.md`·`CLAUDE.md`·`specs/` 수정, `python -c`로 실제 폴더 열기)을 먼저 쓴다. 지금은 FAIL이어야 한다.
 - [ ] T005 `.claude/hooks/protect_files.py`: 보호 대상(`expected/`, `data/fake/`, `tests/`, `config/*.csv`, `.claude/settings.json`, `.claude/hooks/`, `.claude/agents/`) 중 git에 추적되는 파일의 Edit·Write를 막는다. 보호 경로가 든 쓰기 명령(Bash·PowerShell)도 막는다. 새 파일은 허용한다. 훅 전체를 `try/except`로 감싸 모든 실패에서 종료 코드 2로 끝낸다. `hook_test.py`가 FAIL 0이 될 때까지(T004 이후). 허용·차단 규칙의 세부(git 명령 허용 목록, `realpath` 해석, `tasks.md` 허용 파일 목록, 링크 생성 차단)는 plan 보호 설계를 따른다
 - [ ] T005a 훅이 에이전트별 도구 호출을 구분할 수 있는지, `settings.local.json`이 훅·권한에 미치는 영향이 어떤지 가짜 폴더에서 시험하고 결과를 기록한다. 구분하지 못하면 T006·T007의 에이전트는 파일을 쓰지 않는 방식으로 정의한다(T005 이후)
 - [ ] T006 [P] `.claude/agents/format-analyst.md` (Read, Grep, Glob, Write는 `docs/columns-*.md`·`docs/proposals/**`만). 이 파일은 사람이 만든다(`.claude/` 신규 파일은 에이전트에게 차단). 경로 제한은 T005a 결과에 따라 `.claude/settings.json` 권한 규칙이나 훅으로 건다

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(//d/real_data/**)",
+      "Read(//d/real_out/**)",
+      "Read(//d/real_config/**)",
+      "Read(~/Downloads/**)",
+      "Read(~/Desktop/**)",
+      "Read(./data/real/**)",
+      "Edit(//d/real_data/**)",
+      "Edit(//d/real_out/**)",
+      "Edit(//d/real_config/**)",
+      "Edit(./data/real/**)",
+      "Bash(*real_data*)",
+      "Bash(*real_out*)",
+      "Bash(*real_config*)",
+      "Bash(*data/real*)",
+      "Bash(*Downloads*)",
+      "Bash(*Desktop*)",
+      "PowerShell(*real_data*)",
+      "PowerShell(*real_out*)",
+      "PowerShell(*real_config*)",
+      "PowerShell(*data\\real*)",
+      "PowerShell(*Downloads*)",
+      "PowerShell(*Desktop*)"
+    ]
+  }
+}
