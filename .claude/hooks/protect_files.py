@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse 보호 훅 (tasks T005). 계약과 규칙은 hook_test.py 맨 위 설명을 따른다.
+"""PreToolUse 보호 훅 (tasks T005, T005c 확장). 계약과 규칙은 hook_test.py 맨 위 설명을 따른다.
 
 - 차단: 종료 코드 2 + 표준오류 `차단: 이유`
 - 판단 불가: 종료 코드 2 + 표준오류 `차단(판단 불가): 이유` (fail-closed)
@@ -26,6 +26,27 @@ FILE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 TASKS_REL = "specs/001-trouble-merge/tasks.md"
 SPEC_NAMES = {"spec.md", "plan.md", "tasks.md"}
+WORKTREES_PREFIX = ".claude/worktrees/"
+
+# ---------------------------------------------------------------- worktree
+
+
+def valid_worktree(root, wt_dir):
+    """wt_dir가 root의 `.git/worktrees/` 아래에 등록된 실제 git worktree인가."""
+    gitfile = os.path.join(wt_dir, ".git")
+    if not os.path.isfile(gitfile):
+        return False
+    with open(gitfile, encoding="utf-8") as f:
+        first = f.readline().strip()
+    if not first.lower().startswith("gitdir:"):
+        return False
+    gitdir = first[7:].strip()
+    if not os.path.isabs(gitdir):
+        gitdir = os.path.join(wt_dir, gitdir)
+    gitdir = os.path.normcase(os.path.realpath(gitdir))
+    base = os.path.normcase(os.path.realpath(os.path.join(root, ".git", "worktrees")))
+    return gitdir.startswith(base + os.sep)
+
 
 # ---------------------------------------------------------------- 파일 도구
 
@@ -102,6 +123,16 @@ def decide_file(root, cwd, raw):
     rel = resolve_rel(root, cwd, raw)
     if rel is None:
         return  # 저장소 밖: 이 훅의 대상이 아니다(실제 폴더는 deny가 막는다)
+    work_root = root
+    if rel.lower().startswith(WORKTREES_PREFIX):
+        parts = rel.split("/")  # ['.claude', 'worktrees', '<이름>', ...]
+        if len(parts) >= 4:
+            wt_dir = os.path.join(root, ".claude", "worktrees", parts[2])
+            if valid_worktree(root, wt_dir):
+                # 실제 worktree: 그 폴더를 저장소 루트로 보고 같은 규칙을 적용한다.
+                work_root = os.path.realpath(wt_dir)
+                rel = "/".join(parts[3:])
+        # 실제 worktree가 아니거나 worktree 폴더 자체이면 rel이 .claude 아래로 남아 차단된다.
     low = rel.lower()
     if low.split("/")[0] == ".git":
         raise Block("저장소 내부(.git) 수정: " + rel)
@@ -110,9 +141,9 @@ def decide_file(root, cwd, raw):
         return
     if kind == "claude":
         raise Block("보호 장치(.claude)는 사람이 만든다: " + rel)
-    if is_tracked(root, rel):
+    if is_tracked(work_root, rel):
         raise Block("git에 추적되는 보호 대상 수정: " + rel)
-    if listed_in_tasks(root, low):
+    if listed_in_tasks(work_root, low):
         return
     raise Block("tasks.md에 이름이 없는 보호 폴더의 새 파일: " + rel)
 
@@ -128,8 +159,11 @@ ALLOWED_PY_ARGS = [
     re.compile(r"^(\./)?\.claude/hooks/hook_test\.py(\s|$)"),
     re.compile(r"^-m\s+trouble_merge(\s|$)"),
     re.compile(r"^(\./)?tools/make_fake_data\.py(\s|$)"),
+    re.compile(r"^(\./)?tools/make_sample_data\.py(\s|$)"),
 ]
 SCRIPT_EXT_RE = re.compile(r"\.(ps1|sh|bat|cmd|vbs|js|py|pl|rb)$")
+GIT_BRANCH_READ_OPTS = {"--show-current", "-a", "--all", "-r", "--remotes", "--list", "-v", "-vv",
+                        "--no-color"}
 
 WRITE_VERBS = (r"cp|copy|copy-item|cpi|mv|move|move-item|mi|rm|del|erase|rd|rmdir|ri|remove-item|"
                r"ren|rename|rename-item|rni|set-content|sc|add-content|ac|out-file|clear-content|"
@@ -138,6 +172,8 @@ WRITE_VERBS = (r"cp|copy|copy-item|cpi|mv|move|move-item|mi|rm|del|erase|rd|rmdi
 VERB_RE = re.compile(r"(?<![\w.\-])(?:" + WRITE_VERBS + r")(?![\w\-])")
 SED_RE = re.compile(r"(?<![\w.\-])sed\s+(?:-\w*i\b|--in-place)")
 REDIR_RE = re.compile(r"(?<![<>\-=])>{1,2}(?!&)")
+# /dev/null, nul, $null 로 가는 리다이렉트는 파일을 쓰지 않는다.
+NULL_REDIR_RE = re.compile(r"(?:\d?|&)>{1,2}\s*(?:/dev/null|nul|\$null)(?![\w./\-])")
 LINK_RE = re.compile(r"(?<![\w.\-])mklink(?![\w])|-itemtype\s+(?:junction|symboliclink|hardlink)"
                      r"|(?<![\w.\-])ln\s+-\w*s|fsutil\s+hardlink")
 EXEC_RE = re.compile(r"(?<![\w.\-])(?:iex|invoke-expression|start-process|saps|invoke-command)(?![\w\-])")
@@ -148,6 +184,7 @@ PROT_CMD_RE = re.compile(
     r"|(?<![\w.\-])claude\.md(?![\w])"
     r"|docs/constitution\.md"
     r"|specs/[^\s\"']*(?:spec|plan|tasks)\.md")
+WT_RE = re.compile(r"\.claude/worktrees/([^/\s\"']+)((?:/[^\s\"']*)?)")
 HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n[ \t]*\2[ \t]*(?:\n|$)", re.S)
 HERESTRING_RE = re.compile(r"@(['\"]).*?\1@", re.S)
 TOKEN_RE = re.compile(r"\"[^\"]*\"|'[^']*'|\S+")
@@ -155,6 +192,23 @@ TOKEN_RE = re.compile(r"\"[^\"]*\"|'[^']*'|\S+")
 
 def norm(s):
     return s.replace("\\", "/").lower()
+
+
+def strip_worktrees(t, root):
+    """명령 안의 `.claude/worktrees/<이름>/`을, 실제 worktree일 때만 걷어 낸다.
+    이름이 `..`이거나 뒤따르는 경로에 `..`가 끼면 걷어 내지 않는다(그러면 .claude가 남아 차단된다)."""
+    def repl(m):
+        name, rest = m.group(1), m.group(2)
+        if name in (".", "..") or ".." in rest.split("/"):
+            return m.group(0)
+        if not valid_worktree(root, os.path.join(root, ".claude", "worktrees", name)):
+            return m.group(0)
+        return rest[1:]
+    return WT_RE.sub(repl, t)
+
+
+def no_null(t):
+    return NULL_REDIR_RE.sub(" ", t)
 
 
 def strip_wrappers(stmt):
@@ -201,7 +255,7 @@ def check_git(stmt):
         if any(t.startswith("--output") for t in rest):
             raise Block("git " + sub + " --output은 허용하지 않는다")
         return
-    if sub == "add":
+    if sub in ("add", "rev-parse", "ls-files"):
         return
     if sub == "commit":
         if any(t.startswith("--amend") for t in rest):
@@ -211,15 +265,23 @@ def check_git(stmt):
         if any(t in ("-c", "-C", "--create", "--force-create") for t in rest):
             return
         raise Block("git switch는 -c(새 브랜치)만 허용한다")
+    if sub == "branch":
+        if all(t in GIT_BRANCH_READ_OPTS for t in rest):
+            return
+        raise Block("git branch는 목록 조회 옵션만 허용한다")
+    if sub == "worktree":
+        if rest[:1] == ["list"]:
+            return
+        raise Block("git worktree는 list만 허용한다")
     raise Block("허용 목록 밖 git 명령: git " + sub)
 
 
-def decide_shell(cmd):
+def decide_shell(cmd, root):
     cmd = HEREDOC_RE.sub(" ", cmd)
     cmd = HERESTRING_RE.sub(" ", cmd)
     generic = []
     for stmt in (s for s in re.split(r"&&|\|\||[;|\n]", cmd) if s.strip()):
-        n = norm(stmt)
+        n = strip_worktrees(norm(stmt), root)
         if LINK_RE.search(n):
             raise Block("링크·정션 생성 명령은 허용하지 않는다")
         if EXEC_RE.search(n):
@@ -227,7 +289,8 @@ def decide_shell(cmd):
         word, tok, args = first_word(stmt)
         if word == "git":
             check_git(stmt)
-            if REDIR_RE.search(n) and PROT_CMD_RE.search(n):
+            nn = no_null(n)
+            if REDIR_RE.search(nn) and PROT_CMD_RE.search(nn):
                 raise Block("보호 경로로 리다이렉트하는 git 명령")
             continue
         if word in INTERP:
@@ -237,12 +300,12 @@ def decide_shell(cmd):
             if not any(p.match(a) for p in ALLOWED_PY_ARGS):
                 raise Block("허용 목록 밖 python 실행(-c, 임의 스크립트 등)")
             m = re.search(r"--out(?:=|\s+)(\S+)", a)
-            if m and PROT_CMD_RE.search(norm(m.group(1))):
+            if m and PROT_CMD_RE.search(strip_worktrees(norm(m.group(1)), root)):
                 raise Block("도구 출력 폴더가 보호 경로다")
         elif SCRIPT_EXT_RE.search(tok.lower()):
             raise Block("스크립트 파일 직접 실행은 허용하지 않는다")
         generic.append(stmt)
-    t = norm(" ; ".join(generic))
+    t = no_null(strip_worktrees(norm(" ; ".join(generic)), root))
     if VERB_RE.search(t) or SED_RE.search(t) or REDIR_RE.search(t):
         if PROT_CMD_RE.search(t):
             raise Block("보호 경로에 쓰거나 지우거나 옮기는 명령")
@@ -279,7 +342,7 @@ def decide():
         cmd = tin.get("command")
         if not isinstance(cmd, str) or not cmd.strip():
             raise Unsure("command가 없다")
-        decide_shell(cmd)
+        decide_shell(cmd, root)
 
 
 def emit(prefix, msg):

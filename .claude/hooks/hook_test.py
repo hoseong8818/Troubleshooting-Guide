@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""보호 훅 `protect_files.py` 시험 (tasks T004).
+"""보호 훅 `protect_files.py` 시험 (tasks T004, T005c 확장).
 
 실행: python .claude/hooks/hook_test.py [훅 스크립트 경로]
-통과 기준: 마지막 줄이 `FAIL 0`. T005(훅 작성) 전에는 전부 FAIL이 정상이다.
+통과 기준: 마지막 줄이 `FAIL 0`.
 
 시험 방식: 임시 git 저장소(픽스처)를 만들고, 훅을 PreToolUse 입력(JSON, 표준입력)과
 환경 변수 CLAUDE_PROJECT_DIR=<픽스처>로 실행해 종료 코드와 표준오류를 본다.
 실제 저장소의 파일은 읽거나 바꾸지 않는다.
 
-훅이 지킬 계약 (T005가 이 계약을 구현한다)
+훅이 지킬 계약
 - 차단: 종료 코드 2 + 표준오류에 `차단:` 으로 시작하는 이유 한 줄.
 - 판단 불가(입력이 깨졌거나 git·환경을 모를 때): 종료 코드 2 + `차단(판단 불가):`.
 - 허용: 종료 코드 0, 표준오류에 '차단' 없음.
@@ -19,13 +19,22 @@
   아직 없는 새 파일은 '경로 문자열이 specs/001-trouble-merge/tasks.md 본문에 적힌 것'만 허용.
   단 .claude/ 아래는 새 파일도 차단. 경로는 realpath로 해석해서 판단한다
   (.., 역슬래시, 대소문자, \\\\?\\ 접두사, :스트림, 후행 점, 정션, 8.3 짧은 이름).
+- worktree: `.claude/worktrees/<이름>/` 아래 경로는, 그 폴더가 이 저장소에 등록된 실제 git
+  worktree(`.git` 파일이 이 저장소의 `.git/worktrees/`를 가리킴)이면 그 폴더를 저장소 루트로
+  보고 같은 규칙으로 판단한다(추적 여부와 tasks.md도 그 worktree 기준). 실제 worktree가
+  아닌 폴더, worktree 폴더 자체, worktree 안의 `.claude/`는 계속 차단한다.
 - Bash·PowerShell: 보호 경로가 있는 쓰기·삭제·이동 명령은 차단. 쓰기 동사가 있는데 대상이
   변수·문자열 이어붙이기라 해석할 수 없으면 차단(판단 불가). .git/ 쓰기와 정션·링크 생성도 차단.
+  명령 안의 `.claude/worktrees/<이름>/`은 실제 worktree일 때만 걷어 내고 판단한다
+  (`..`가 낀 경로는 걷어 내지 않는다). `/dev/null`, `nul`, `$null`로 가는 리다이렉트는
+  쓰기로 보지 않는다.
 - 인터프리터는 허용 목록만: python -m unittest*, python .claude/hooks/hook_test.py,
-  python -m trouble_merge*, python tools/make_fake_data.py*. python -c, 그 밖의 스크립트,
-  powershell -c, cmd /c 는 차단.
-- git은 status, diff, log, show, add, commit(--amend 제외), switch -c 만 허용.
-  rm, reset, restore, checkout --, stash, config, rebase, filter-*, commit --amend 는 차단.
+  python -m trouble_merge*, python tools/make_fake_data.py*, python tools/make_sample_data.py*.
+  python -c, 그 밖의 스크립트, powershell -c, cmd /c 는 차단.
+- git은 status, diff, log, show, add, commit(--amend 제외), switch -c, 그리고 읽기용
+  branch(목록 옵션만)·rev-parse·ls-files·worktree list 만 허용.
+  rm, reset, restore, checkout --, stash, config, rebase, filter-*, commit --amend,
+  branch 생성·삭제, worktree add·remove·prune 은 차단.
 """
 import ctypes
 import json
@@ -83,6 +92,9 @@ def make_fixture(root: Path) -> None:
     git(root, "commit", "-q", "-m", "fixture")
     (root / "tests" / "test_staged.py").write_text("pass\n", encoding="utf-8")
     git(root, "add", "tests/test_staged.py")  # 커밋하지 않고 add만 한 파일
+    # 실제 worktree(wt1)와, worktree 이름만 흉내 낸 가짜 폴더(fake)
+    git(root, "worktree", "add", "-q", ".claude/worktrees/wt1", "-b", "wt1")
+    (root / ".claude" / "worktrees" / "fake" / "src").mkdir(parents=True)
     if IS_WIN:
         subprocess.run(["cmd", "/c", "mklink", "/J", "src_link", "tests"],
                        cwd=root, capture_output=True)
@@ -245,6 +257,67 @@ def build_cases(root: Path):
         env_set={"PATH": str(root / "nogit")})
     add("CLAUDE_PROJECT_DIR 없음", W(a("src", "trouble_merge", "new.py")), "unsure",
         env_drop=("CLAUDE_PROJECT_DIR",))
+
+    # ===== T005c 확장 =====
+
+    # --- 10. worktree: .claude/worktrees/<이름>/ 은 그 폴더를 저장소 루트로 보고 판단 ---
+    def w(*parts):
+        return a(".claude", "worktrees", "wt1", *parts)
+
+    def fk(*parts):
+        return a(".claude", "worktrees", "fake", *parts)
+
+    add("worktree: 새 src 파일", W(w("src", "new.py")), "allow")
+    add("worktree: 새 data/sample 파일", W(w("data", "sample", "a.csv")), "allow")
+    add("worktree: tasks에 적힌 새 tests 파일", W(w("tests", "test_new_listed.py")), "allow")
+    add("worktree: 추적된 tests 수정", E(w("tests", "test_compare.py")), "block")
+    add("worktree: tasks에 없는 새 tests 파일", W(w("tests", "zz.py")), "block")
+    add("worktree: 추적된 헌법 수정", E(w("docs", "constitution.md")), "block")
+    add("worktree 안의 .claude 파일", W(w(".claude", "hooks", "x.py")), "block")
+    add("worktree의 .git 파일", E(w(".git")), "block")
+    add("worktree 폴더 자체", W(a(".claude", "worktrees", "wt1")), "block")
+    add("가짜 worktree 폴더(.git 없음)", W(fk("src", "x.py")), "block")
+    add("worktree에서 .. 로 메인 settings.json 수정", E(w("..", "..", "settings.json")), "block")
+    add("Bash worktree: 절대 경로 cd 뒤 data/sample에 쓰기",
+        B(f'cd "{w()}" && echo x > data/sample/a.csv'), "allow")
+    add("Bash worktree: 절대 경로의 data/sample 삭제", B(f'rm -rf "{w("data", "sample")}"'), "allow")
+    add("PS worktree: 절대 경로의 새 파일 쓰기",
+        P(f'Set-Content -Path "{w("data", "a.csv")}" -Value x'), "allow")
+    add("Bash worktree: 절대 경로의 tests 덮어쓰기",
+        B(f'echo x > "{w("tests", "test_compare.py")}"'), "block")
+    add("Bash worktree: 안의 .claude 설정 덮어쓰기",
+        B(f'echo x > "{w(".claude", "settings.json")}"'), "block")
+    add("Bash 가짜 worktree 안에 쓰기", B(f'echo x > "{fk("src", "x.py")}"'), "block")
+    add("Bash worktrees/.. 로 메인 settings.json 덮어쓰기",
+        B("echo x > .claude/worktrees/../settings.json"), "block")
+    add("Bash worktrees/이름/../.. 로 메인 settings.json 덮어쓰기",
+        B("echo x > .claude/worktrees/wt1/../../settings.json"), "block")
+
+    # --- 11. git 읽기용 명령은 허용, 쓰기성은 차단 ---
+    for n, cmd in (("git branch --show-current", "git branch --show-current"),
+                   ("git branch -a", "git branch -a"),
+                   ("git rev-parse", "git rev-parse --show-toplevel"),
+                   ("git worktree list", "git worktree list"),
+                   ("git ls-files", "git ls-files tests")):
+        add(f"Bash 허용: {n}", B(cmd), "allow")
+    for n, cmd in (("git branch -D", "git branch -D wt1"),
+                   ("git branch 새 이름", "git branch newbranch"),
+                   ("git worktree add", "git worktree add x -b y"),
+                   ("git worktree remove", "git worktree remove wt1"),
+                   ("git worktree prune", "git worktree prune")):
+        add(f"Bash {n}", B(cmd), "block")
+
+    # --- 12. /dev/null, nul, $null 리다이렉트는 쓰기가 아니다 ---
+    add("Bash 허용: 2>/dev/null", B("ls tests 2>/dev/null"), "allow")
+    add("Bash 허용: find 2>/dev/null", B("find . -name x 2>/dev/null"), "allow")
+    add("Bash 허용: > /dev/null", B("cat expected/A_basic_expected.xlsx > /dev/null"), "allow")
+    add("PS 허용: 2>$null", P("Get-ChildItem tests 2>$null"), "allow")
+    add("Bash: /dev/null 뒤에 tests 리다이렉트", B("echo x 2>/dev/null > tests/a.py"), "block")
+    add("Bash: nulls.txt 같은 이름은 null이 아니다", B("echo x > tests/nulls.txt"), "block")
+
+    # --- 13. 허용 목록에 샘플 데이터 생성기 추가 ---
+    add("Bash 허용: 샘플 데이터 생성기", B("python tools/make_sample_data.py"), "allow")
+    add("Bash: tools의 다른 스크립트는 차단", B("python tools/other.py"), "block")
     return cases
 
 
