@@ -51,6 +51,7 @@
 - [x] T017c [P] [US1] `tests/test_input_unchanged.py`: 실행 전후 입력 파일 해시가 같음(NFR-003)
 - [x] T017d [P] [US1] `tests/test_formula_injection.py`: `=`, `+`, `-`, `@`로 시작하는 입력 값이 출력에서 수식 셀이 되지 않고 `'`가 붙음(NFR-008, SC-009). 이를 위해 가짜 데이터에 해당 값 행이 필요하므로 T009의 입력에 포함한다
 - [ ] T017e [P] [US1] `tests/test_input_limits.py`: `.xlsm`·`.xls`, 크기·행 수 상한 초과 파일은 건너뛰고 감사에 보고, 나머지는 처리(NFR-007, SC-010)
+- [ ] T017f [P] [US1] `tests/test_input_size_limits.py`: 파일 크기, 압축 해제 크기, 시트당 행 수 상한을 넘은 파일은 건너뛰고 감사 결과에 상한 초과 파일로 보고(NFR-007, SC-010). 상한은 명령줄 옵션 `--max-file-mb`, `--max-unzipped-mb`, `--max-rows`로 받고 기본값은 50, 200, 100000
 - [x] T018 [US1] 위 테스트가 모두 실패하는 것을 확인하고 실패 상태로 커밋. 모듈이 없어서 나는 `ImportError`가 아니라 기대값 불일치로 실패하는지 확인한다. 커밋 메시지는 `test:`로 시작한다(T013~T017c 이후)
 - [x] T019 [P] [US1] `src/trouble_merge/mapping.py`: 컬럼 대응 표 읽기와 양식 판별
 - [x] T020 [P] [US1] `src/trouble_merge/dates.py`: 날짜 읽기와 `YYYY-MM-DD` 변환
