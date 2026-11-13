@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
 rem ================================================================
-rem  ?곕え 寃뚯떆???꾧린: 3456 ?ы듃瑜??곕뒗 python(寃뚯떆???쒕쾭)留??덈떎.
+rem  데모 게시판 끄기: 3456 포트를 쓰는 python(게시판 서버)만 끈다.
 rem ================================================================
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$c = Get-NetTCPConnection -LocalPort 3456 -State Listen -ErrorAction SilentlyContinue; if (-not $c) { Write-Host '耳쒖졇 ?덈뒗 寃뚯떆?먯씠 ?놁뒿?덈떎.'; exit 0 }; foreach ($x in $c) { $p = Get-Process -Id $x.OwningProcess -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -like 'python*') { Stop-Process -Id $p.Id -Force; Write-Host '寃뚯떆?먯쓣 猿먯뒿?덈떎.' } else { Write-Host '3456 ?ы듃瑜?python???꾨땶 ?꾨줈洹몃옩???곌퀬 ?덉뼱 ?꾩? ?딆븯?듬땲??' } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$c = Get-NetTCPConnection -LocalPort 3456 -State Listen -ErrorAction SilentlyContinue; if (-not $c) { Write-Host '켜져 있는 게시판이 없습니다.'; exit 0 }; foreach ($x in $c) { $p = Get-Process -Id $x.OwningProcess -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -like 'python*') { Stop-Process -Id $p.Id -Force; Write-Host '게시판을 껐습니다.' } else { Write-Host '3456 포트를 python이 아닌 프로그램이 쓰고 있어 끄지 않았습니다.' } }"
 echo.
 pause
