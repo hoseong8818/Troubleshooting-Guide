@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 현재 상태
 
-구현은 Phase 6까지 끝났고 테스트 81개가 통과한다(`src/trouble_merge/`, `tests/`). 보호 훅(`protect_files.py`)은 구현·등록했고 보호할 파일은 모두 커밋되어 실제로 보호된다. 입력 크기와 행 수 상한(NFR-007)은 명령줄 옵션으로 구현했고(기본값은 데모용), 운영체제 권한과 회사 PC 확인은 데모 범위에서 하지 않았으며 실제 업무 이관 시 T050에서 한다(README 참고). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
+구현은 Phase 10까지 끝났고 테스트 119개가 통과한다(`src/trouble_merge/`, `tests/`). 데모는 `tools\run_demo.ps1 -Serve`(가짜·예시 데이터 통합 + 게시판 http://localhost:3456), 실제 업무 실행은 `run_merge.bat`(맨 위 세 줄만 고치고 사람이 더블클릭). 남은 사람 작업은 T003a, T003b, T047, T050, T063. 보호 훅(`protect_files.py`)은 구현·등록했고 보호할 파일은 모두 커밋되어 실제로 보호된다. 입력 크기와 행 수 상한(NFR-007)은 명령줄 옵션으로 구현했고(기본값은 데모용), 운영체제 권한과 회사 PC 확인은 데모 범위에서 하지 않았으며 실제 업무 이관 시 T050에서 한다(README 참고). 작업은 `specs/001-trouble-merge/tasks.md`의 Phase 순서를 따른다. 문서와 출력 문구는 모두 한국어다.
 
 ## 이 도구가 하는 일
 
@@ -35,9 +35,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 python -m unittest                          # 전체 테스트
 python -m unittest tests.test_compare       # 단일 테스트 모듈
 python .claude/hooks/hook_test.py           # 보호 훅 시험 (FAIL 0이어야 함)
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_demo.ps1 -Serve   # 데모(통합 + 게시판 localhost:3456)
 ```
 
-- `src/trouble_merge/`: `mapping`(컬럼 대응·양식 판별) → `reader`(보이는 시트만) → `dates` → `check`(확인 필요 판정) → `merge` → `writer`/`cli`, 그리고 `safe_log`, `audit`.
+- `src/trouble_merge/`: `mapping`(컬럼 대응·양식 판별) → `reader`(보이는 시트만) → `dates` → `check`(확인 필요 판정) → `merge` → `writer`/`cli`, 그리고 `safe_log`, `audit`. 게시판은 `board`(화면 틀 `board_page.html`).
 - `config/column_map.csv`(양식별 컬럼 대응), `config/conversion_map.csv`(설비·분류 변환, 종류 열로 구분): UTF-8 BOM CSV. 새 양식은 코드 수정 없이 이 표에 줄만 추가해 처리한다.
 - 양식은 헤더로 판별한다(한 양식의 원본 컬럼명이 모두 입력 헤더에 있으면 그 양식). 어느 양식에도 안 맞으면 감사 결과에 '대응 규칙 없음'. 표에 없는 컬럼은 '기타 항목'에 `이름: 값`으로 보관.
 - 변환표 일치는 앞뒤 공백·대소문자만 정리한 뒤 정확히 같을 때만. 날짜는 `YYYY-MM-DD`로 통일. 설비·일자·증상이 같은 행은 지우지 않고 '중복 의심' 표시.

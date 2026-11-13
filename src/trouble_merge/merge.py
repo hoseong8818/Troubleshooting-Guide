@@ -12,7 +12,7 @@ DUPLICATE_MARK = "중복 의심"
 REQUIRED_STANDARD = ("설비", "증상", "원인", "조치")  # FR-013
 
 
-def convert_rows(file_name, sheet, fmt, conversions):
+def convert_rows(file_name, sheet, fmt, conversions, date_range=None):
     """한 시트의 입력 행을 출력 행(사전) 목록으로 바꾼다. 모든 칸이 빈 행은 뺀다(FR-014)."""
     grid = sheet.grid
     header = [header_name(v) for v in grid[fmt.header_row - 1]]
@@ -35,7 +35,7 @@ def convert_rows(file_name, sheet, fmt, conversions):
             return row[index] if index is not None and index < len(row) else None
 
         raw = {c: cell(c) for c in ("설비", "일자", "증상", "원인", "조치", "분류")}
-        final, reasons, originals = judge(raw, conversions)
+        final, reasons, originals = judge(raw, conversions, date_range)
 
         parts = []
         for index, name in others:

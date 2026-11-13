@@ -6,6 +6,9 @@ from pathlib import Path
 STANDARD_COLUMNS = ("설비", "일자", "증상", "원인", "조치", "분류")
 
 
+UNKNOWN_CAUSE = "원인 미상"  # conversion_map.csv의 종류: 정보가 없는 원인 단어 목록(T059)
+
+
 class ConfigError(Exception):
     """설정 파일 오류. 메시지에는 파일 이름과 줄 번호만 담는다(셀 값 금지)."""
 
@@ -75,9 +78,12 @@ def load_formats(config_dir):
 
 
 def load_conversions(config_dir):
-    """{'설비': {키: 표준 값}, '분류': {키: 표준 값}}. 같은 키가 표준 값을 달리하면 ConfigError."""
+    """{'설비': {키: 표준 값}, '분류': {키: 표준 값}, '원인 미상': {키: ''}}.
+
+    같은 키가 표준 값을 달리하면 ConfigError. '원인 미상'은 단어 목록이라 표준 값을 비워 둔다(T059).
+    """
     path = Path(config_dir) / "conversion_map.csv"
-    tables = {"설비": {}, "분류": {}}
+    tables = {"설비": {}, "분류": {}, UNKNOWN_CAUSE: {}}
     try:
         with open(path, encoding="utf-8-sig", newline="") as f:
             reader = csv.reader(f)

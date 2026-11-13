@@ -9,11 +9,14 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 
-from .audit import Audit, write_name_map
+from .audit import Audit, write_check_list, write_name_map
+from .check import default_date_range
+from .dates import parse_bound
 from .mapping import ConfigError, detect_format, header_name, load_conversions, load_formats
 from .merge import convert_rows, mark_duplicates, sort_records
 from .reader import (
     check_size_limits, exceeds_row_limit, is_readable_extension, list_inputs, read_workbook,
+    read_workbook_excel,
 )
 from .safe_log import SafeLog
 from .writer import write_workbook
@@ -30,6 +33,13 @@ UNMATCHED_TEXT = {
 }
 
 
+def date_bound(text):
+    try:
+        return parse_bound(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError("YYYY-MM-DD 형식이어야 한다")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="trouble_merge")
     parser.add_argument("--input", nargs="+", required=True, help="폴더 또는 파일")
@@ -41,6 +51,12 @@ def build_parser():
                         help="압축 해제 후 크기 상한(MB). 넘는 파일은 건너뛴다")
     parser.add_argument("--max-rows", type=int, default=DEFAULT_MAX_ROWS,
                         help="시트당 행 수 상한(헤더 포함). 넘는 파일은 건너뛴다")
+    parser.add_argument("--min-date", type=date_bound, default=None,
+                        help="이보다 이른 일자는 '확인 필요(일자 범위 밖)'. YYYY-MM-DD, 기본 2000-01-01")
+    parser.add_argument("--max-date", type=date_bound, default=None,
+                        help="이보다 늦은 일자는 '확인 필요(일자 범위 밖)'. YYYY-MM-DD, 기본 실행한 해의 12월 31일")
+    parser.add_argument("--open-with", choices=("openpyxl", "excel"), default="openpyxl",
+                        help="파일 여는 방법. excel은 설치된 엑셀을 조종한다(pywin32 필요)")
     parser.add_argument("--show-names", action="store_true",
                         help="로그·감사 결과에 실제 파일명·시트명을 낸다(기본은 마스킹)")
     return parser
@@ -48,7 +64,12 @@ def build_parser():
 
 def main(argv=None):
     warnings.simplefilter("ignore")  # 라이브러리 경고 문구에 값이 섞이지 않게 한다
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    low, high = default_date_range()
+    args.date_range = (args.min_date or low, args.max_date or high)
+    if args.date_range[0] > args.date_range[1]:
+        parser.error("--min-date가 --max-date보다 늦다")
     try:
         return run(args)
     except Exception:  # 메시지와 종류를 모두 버리고 고정 문구만 낸다
@@ -70,6 +91,13 @@ def run(args):
     except ConfigError as error:
         print("설정 오류: %s" % error, file=sys.stderr)
         return 2
+
+    if args.open_with == "excel":
+        try:
+            import win32com.client  # noqa: F401  엑셀 경로에만 필요하다
+        except ImportError:
+            print("설정 오류: --open-with excel 에는 pywin32가 필요하다", file=sys.stderr)
+            return 2
 
     registered = {name for fmt in formats.values() for name in fmt.source_names()}
     log = SafeLog(registered, show_names=args.show_names)
@@ -93,7 +121,8 @@ def run(args):
             skip_over_limit(audit, log, name, kind)
             continue
         try:
-            sheets, hidden, formula_missing = read_workbook(path)
+            reader = read_workbook_excel if args.open_with == "excel" else read_workbook
+            sheets, hidden, formula_missing = reader(path)
         except Exception:  # 예외 종류·메시지 모두 버린다(내부 이름이나 셀 값이 섞일 수 있다)
             audit.failed_files.append(name)
             log.log("열기 실패", file=name)
@@ -124,7 +153,7 @@ def run(args):
                 if column and fmt.standard_of(column) is None:
                     audit.add_unregistered(name, sheet.name, log.column_label(column, position))
 
-            rows = convert_rows(name, sheet, fmt, conversions)
+            rows = convert_rows(name, sheet, fmt, conversions, args.date_range)
             audit.input_rows += len(rows)
             for record in rows:
                 for standard in record.pop("_blank"):
@@ -156,7 +185,9 @@ def run(args):
     audit.output_rows = len(records)
     audit.check_count = sum(1 for r in records if r["확인 필요 이유"] is not None)
     audit.duplicate_count = sum(1 for r in records if r["중복 의심"] is not None)
+    audit.count_reasons(records)
     audit.write(args.out, stamp)
+    write_check_list(log, records, args.out, stamp)
     write_name_map(log, args.out, stamp)
 
     print("완료: 출력 %d행" % len(records))
