@@ -92,6 +92,13 @@ def run(args):
         print("설정 오류: %s" % error, file=sys.stderr)
         return 2
 
+    if args.open_with == "excel":
+        try:
+            import win32com.client  # noqa: F401  엑셀 경로에만 필요하다
+        except ImportError:
+            print("설정 오류: --open-with excel 에는 pywin32가 필요하다", file=sys.stderr)
+            return 2
+
     registered = {name for fmt in formats.values() for name in fmt.source_names()}
     log = SafeLog(registered, show_names=args.show_names)
     audit = Audit(log)

@@ -130,7 +130,14 @@ def read_workbook_excel(path):
     try:
         app.Visible = False
         app.DisplayAlerts = False
-        wb = app.Workbooks.Open(str(Path(path).resolve()), 0, True)  # UpdateLinks=0, ReadOnly=True
+        try:
+            app.AutomationSecurity = 3  # msoAutomationSecurityForceDisable: 매크로를 실행하지 않는다(NFR-007)
+        except Exception:
+            pass
+        wb = app.Workbooks.Open(  # 외부 링크 갱신 안 함, 읽기 전용, 알림 없음
+            str(Path(path).resolve()), UpdateLinks=0, ReadOnly=True,
+            IgnoreReadOnlyRecommended=True, Notify=False,
+        )
         sheets = []
         hidden = 0
         formula_missing = 0
