@@ -8,8 +8,9 @@
 # - 결과는 매번 새 폴더 out\run_<시각>에 만든다. 이전 결과를 덮어쓰지 않는다.
 # - 실제 데이터에는 이 스크립트를 쓰지 않는다. 실제 데이터는 run_merge.bat을 사람이 직접 실행한다.
 # - -Serve를 붙이면 파일로 여는 대신 http://localhost:3456 으로 띄운다(tools\serve_board.ps1).
+# - -NoOpen을 붙이면 브라우저도 서버도 띄우지 않고 결과만 만든다(tools\build_site.ps1이 쓴다).
 # - -Sample <폴더>로 예시 데이터 위치를 바꿀 수 있다(기본 data\sample).
-param([switch]$Serve, [string]$Sample = "")
+param([switch]$Serve, [switch]$NoOpen, [string]$Sample = "")
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
@@ -68,7 +69,9 @@ if ($audit) {
     ForEach-Object { $_.Line }
 }
 Write-Host ("결과 폴더: " + $run)
-if ($Serve) {
+if ($NoOpen) {
+  Write-Host "-NoOpen: 브라우저도 서버도 띄우지 않습니다."
+} elseif ($Serve) {
   & (Join-Path $PSScriptRoot "serve_board.ps1") -Dir (Join-Path $run "sample")
 } else {
   Start-Process (Join-Path $run "sample\board.html")

@@ -112,6 +112,34 @@ python -m trouble_merge.board --merged out/merged.xlsx --out out
 - 설비·분류 변환은 `config/conversion_map.csv`(종류 열로 구분). 비교는 앞뒤 공백·대소문자만 정리한 뒤 정확히 같을 때만 일치로 봅니다. 같은 키에 표준 값이 둘이면 실행을 멈춥니다(종료 코드 2).
 - 두 CSV는 UTF-8 BOM으로 저장합니다.
 
+## GitHub + Vercel 배포 (시연용 게시판)
+
+예시 데이터(가상)로 만든 게시판 한 장을 정적 사이트로 올려 시연 링크를 만듭니다. `push`와 Vercel 연결은 사람이 직접 합니다.
+
+**준비물(저장소 안)**
+
+- `vercel.json`: 정적 사이트 설정(빌드 없음, 출력 폴더 `public`)과 보안 헤더. 헤더에 `Content-Security-Policy`(외부 연결·외부 스크립트·폼 전송 차단), `X-Robots-Tag: noindex, nofollow`(검색 엔진 색인 차단), `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`가 들어 있습니다.
+- `public/index.html`: 게시판 한 장. 직접 고치지 않고 아래 스크립트로만 만듭니다.
+- `tools/build_site.ps1`: `run_demo.ps1 -NoOpen`으로 예시 데이터(`data/sample`)를 통합해 게시판을 만들고, 가장 최근 `out\run_*\sample\board.html`을 `public\index.html`로 복사합니다. 복사 전에 `https?://`, `fetch(`, `XMLHttpRequest`, `WebSocket`, `<script src`, `<link`가 하나라도 있으면 실패합니다. 입력은 예시 데이터뿐이고, 실제 데이터 폴더를 읽는 경로는 없습니다.
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_site.ps1
+```
+
+**배포 순서**
+
+1. GitHub 저장소는 **비공개**를 권장합니다. `git remote add origin <주소>`와 `git push`는 사람이 직접 합니다.
+2. Vercel에서 `Add New → Project`로 그 저장소를 Import합니다(Import Project).
+3. 설정: Framework Preset은 `Other`, Build Command는 비움, Install Command는 비움, Output Directory는 `public`. (`vercel.json`과 같은 값입니다.)
+4. 시연 링크를 비공개로 하려면 Vercel 프로젝트의 Settings → Deployment Protection을 켭니다. 켜지 않으면 링크를 아는 누구나 볼 수 있습니다.
+5. 검색 엔진 색인은 `X-Robots-Tag` 헤더로 막습니다. 헤더는 색인만 막을 뿐 접속을 막지는 않으므로 접속 제한은 Deployment Protection으로 합니다.
+
+**지켜야 할 것**
+
+- **실제 데이터로 만든 `board.html`(`real_out` 등)은 `public`에 넣거나 push하지 않습니다.** 게시판에는 설비 코드와 증상·원인·조치 같은 셀 값이 그대로 들어 있습니다. `build_site.ps1`은 예시 데이터만 쓰도록 되어 있으니 `public\index.html`을 손으로 바꾸지 않습니다.
+- 게시판(`src/trouble_merge/board.py`, `board_page.html`)을 고친 뒤에는 `build_site.ps1`을 다시 실행해 `public\index.html`을 갱신하고 커밋합니다. 갱신하지 않으면 배포본이 옛 화면으로 남습니다.
+- 게시판 화면을 바꿀 때는 `vercel.json`의 CSP(`script-src 'unsafe-inline'` 등)에 걸리지 않게 외부 파일·외부 주소를 쓰지 않습니다(`build_site.ps1`의 검사가 막습니다).
+
 ## 테스트
 
 ```bash
