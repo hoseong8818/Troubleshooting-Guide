@@ -3,6 +3,8 @@
 한국어 텍스트 한 장. 파일명·시트명·컬럼명은 SafeLog가 정한 표시(마스킹·위치)로만 쓰고 셀 값은 넣지 않는다.
 """
 
+import csv
+
 from .writer import unique_path
 
 
@@ -22,6 +24,15 @@ class Audit:
         self.hidden = []             # (파일명, 숨긴 시트 수)
         self.formula_missing = 0
         self.prefixed = 0
+        self.reason_counts = {}      # 확인 필요 이유 -> 건수(한 행에 이유가 여럿이면 각각 센다, T060)
+
+    def count_reasons(self, records):
+        counts = {}
+        for record in records:
+            for reason in (record["확인 필요 이유"] or "").split("; "):
+                if reason:
+                    counts[reason] = counts.get(reason, 0) + 1
+        self.reason_counts = dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
 
     def add_unregistered(self, file, sheet, label):
         entry = (file, sheet, label)
@@ -35,6 +46,8 @@ class Audit:
         lines.append("출력 행 수: %d" % self.output_rows)
         lines.append("행 수 일치: %s" % ("예" if self.input_rows == self.output_rows else "아니오"))
         lines.append("확인 필요 건수: %d" % self.check_count)
+        for reason, count in self.reason_counts.items():
+            lines.append("확인 필요 이유별 건수: %s %d" % (reason, count))
         lines.append("중복 의심 건수: %d" % self.duplicate_count)
         lines.append("읽은 파일 수: %d" % self.files_read)
         if self.files_read == 0:
@@ -65,6 +78,21 @@ class Audit:
         path = unique_path(out_dir, "audit_" + stamp, ".txt", stamp)
         path.write_text(self.render(), encoding="utf-8")
         return path
+
+
+def write_check_list(log, records, out_dir, stamp):
+    """확인 필요 행 목록 CSV(T060). 현장에 돌려주어 원본을 고치게 하는 용도라 위치와 이유만 쓴다(셀 값 없음)."""
+    path = unique_path(out_dir, "check_list_" + stamp, ".csv", stamp)
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["파일", "시트", "행", "이유"])
+        flagged = [r for r in records if r["확인 필요 이유"]]
+        flagged.sort(key=lambda r: (log.file_label(r["원본 파일"]), log.sheet_label(r["원본 시트"]), r["원본 행"]))
+        for record in flagged:
+            if record["확인 필요 이유"]:
+                writer.writerow([log.file_label(record["원본 파일"]), log.sheet_label(record["원본 시트"]),
+                                 record["원본 행"], record["확인 필요 이유"]])
+    return path
 
 
 def write_name_map(log, out_dir, stamp):
