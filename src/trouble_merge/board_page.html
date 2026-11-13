@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>트러블슈팅 노트</title>
+<title>Troubleshooting Guide</title>
 <!--
   화면 구성은 Apple 개발자 제품 페이지 형식을 참고했다: 고정 로컬 막대, 가운데 히어로, 짙은 둥근 카드,
   배경이 번갈아 바뀌는 섹션(작은 머리말 + 큰 제목). 외부 폰트·이미지·스크립트를 쓰지 않는다.
@@ -65,7 +65,7 @@ section.block{padding:88px 0}
 .hint{margin:12px 0 0;font-size:14px;color:var(--gray)}
 
 /* 요약 카드 */
-.summary{background:var(--card);border-radius:18px;padding:36px 40px;margin:0 0 72px}
+.summary{background:var(--card);border-radius:18px;padding:32px 36px;margin:36px 0 0}
 .summary h2{margin:0 0 16px;font-size:24px;font-weight:600}
 .summary p{margin:0 0 12px;color:var(--gray2)}
 .stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin:0 0 14px;padding:0;list-style:none}
@@ -75,7 +75,7 @@ section.block{padding:88px 0}
 .linkbtn:hover{text-decoration:underline}
 
 /* 오류 현황 */
-.bars{margin:36px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.bars{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px}
 .bar{width:100%;display:grid;grid-template-columns:180px 1fr 64px;align-items:center;gap:16px;background:var(--card);border:1px solid transparent;border-radius:14px;padding:14px 18px;cursor:pointer;text-align:left;min-height:52px}
 .bar:hover{background:var(--card2)}
 .bar[aria-pressed="true"]{border-color:var(--orange)}
@@ -140,13 +140,12 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
 @media (prefers-reduced-motion:reduce){.view{animation:none}}
 @media (max-width:734px){
   .menu{gap:14px}
-  .menu .opt{display:none}
   .hero h1{font-size:48px}
   .hero .lead{font-size:19px}
   .headline{font-size:32px}
   .eyebrow{font-size:17px}
   section.block{padding:56px 0}
-  .summary{padding:26px 22px;margin:0 0 48px}
+  .summary{padding:24px 20px;margin:28px 0 0}
   .bar{grid-template-columns:1fr 56px}
   .bar .track{grid-column:1 / -1;grid-row:2}
   .case{padding:18px 20px}
@@ -161,44 +160,23 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
 <body>
   <nav class="localnav" aria-label="로컬 메뉴">
     <div class="container in">
-      <button class="brand display" id="home" type="button">트러블슈팅 노트</button>
+      <button class="brand display" id="home" type="button">Troubleshooting Guide</button>
       <div class="menu">
-        <button type="button" data-jump="top" aria-current="true">개요</button>
-        <button type="button" data-jump="errors" class="opt">오류 현황</button>
         <button type="button" data-jump="cases">사례 찾기</button>
-        <button type="button" class="pill" id="find">검색</button>
+        <button type="button" data-jump="errors">오류 현황</button>
       </div>
     </div>
   </nav>
 
   <main id="listview" class="view">
     <header class="hero container" id="top">
-      <h1 class="display">트러블슈팅 노트</h1>
-      <p class="lead" id="lead">설비 고장 사례를 증상과 원인으로 찾아 해결 방법을 바로 확인하세요.</p>
+      <h1 class="display">Troubleshooting Guide</h1>
       <div class="searchbox">
         <span class="glyph" aria-hidden="true"></span>
         <input id="q" type="search" placeholder="증상이나 원인을 입력하세요 (예: 베어링 소음, 압력 저하)" aria-label="증상·원인·설비 검색" autocomplete="off" enterkeyhint="search">
       </div>
       <p class="hint">이 파일 안의 사례만 찾습니다. 외부로 전송하지 않습니다. 키보드 <kbd>/</kbd>로 검색 칸 이동.</p>
     </header>
-
-    <div class="container">
-      <section class="summary" id="summary" aria-labelledby="summary-title">
-        <h2 class="display" id="summary-title">이번 통합 요약</h2>
-        <ul class="stats" id="stats"></ul>
-        <button class="linkbtn" type="button" id="only-check">확인 필요 사례만 보기 ›</button>
-      </section>
-    </div>
-
-    <section class="block band" id="errors">
-      <div class="container">
-        <p class="eyebrow">오류 현황</p>
-        <h2 class="headline display">수기 작성 오류를<br>유형별로 나눴습니다</h2>
-        <p class="lead">판단이 안 되는 칸은 지우지 않고 '확인 필요'로 남겼습니다. 유형을 누르면 해당 사례만 볼 수 있습니다.</p>
-        <ul class="bars" id="bars"></ul>
-        <p class="lead" id="no-errors" hidden>확인 필요 사례가 없습니다.</p>
-      </div>
-    </section>
 
     <section class="block" id="cases">
       <div class="container">
@@ -214,6 +192,21 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
           <h3 class="display">해당 사례 없음</h3>
           <p>다른 단어로 검색하거나 분류를 바꿔 보세요.</p>
         </div>
+      </div>
+    </section>
+
+    <section class="block band" id="errors">
+      <div class="container">
+        <p class="eyebrow">오류 현황</p>
+        <h2 class="headline display">수기 작성 오류를<br>유형별로 나눴습니다</h2>
+        <p class="lead">판단이 안 되는 칸은 지우지 않고 '확인 필요'로 남겼습니다. 유형을 누르면 해당 사례만 볼 수 있습니다.</p>
+        <section class="summary" id="summary" aria-labelledby="summary-title">
+          <h2 class="display" id="summary-title">이번 통합 요약</h2>
+          <ul class="stats" id="stats"></ul>
+          <button class="linkbtn" type="button" id="only-check">확인 필요 사례만 보기 ›</button>
+        </section>
+        <ul class="bars" id="bars"></ul>
+        <p class="lead" id="no-errors" hidden>확인 필요 사례가 없습니다.</p>
       </div>
     </section>
   </main>
@@ -287,8 +280,6 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
       if (p["중복 의심"]) dups += 1;
       reasonsOf(p).forEach(function (r) { counts[r] = (counts[r] || 0) + 1; });
     });
-    $("lead").textContent = "설비 " + fmt(Object.keys(equipment).length) + "대의 고장 사례 " + fmt(posts.length) +
-      "건을 증상과 원인으로 찾아 해결 방법을 바로 확인하세요.";
     var stats = $("stats");
     [["사례", posts.length], ["설비", Object.keys(equipment).length], ["분류", Object.keys(cats).length],
      ["확인 필요", checks], ["중복 의심", dups]].forEach(function (s) {
@@ -322,7 +313,7 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
       li.appendChild(b);
       bars.appendChild(li);
     });
-    $("foot").textContent = "트러블슈팅 노트 · 통합 엑셀에서 만든 정적 페이지 · 사례 " + fmt(posts.length) + "건 · 외부 전송 없음";
+    $("foot").textContent = "Troubleshooting Guide ·통합 엑셀에서 만든 정적 페이지 · 사례 " + fmt(posts.length) + "건 · 외부 전송 없음";
   }
 
   function renderCats() {
@@ -490,7 +481,6 @@ footer{border-top:1px solid rgba(255,255,255,.12);padding:20px 0 40px;font-size:
   clearBtn.addEventListener("click", function () { cat = ""; reason = ""; onlyCheck = false; qEl.value = ""; limit = PAGE_SIZE; renderList(); });
   $("only-check").addEventListener("click", function () { onlyCheck = true; reason = ""; limit = PAGE_SIZE; renderList(); jump("cases"); });
   $("home").addEventListener("click", function () { listScroll = 0; go(""); jump("top"); });
-  $("find").addEventListener("click", function () { if (!articleEl.hidden) go(""); jump("top"); qEl.focus(); });
   Array.prototype.forEach.call(document.querySelectorAll(".menu [data-jump]"), function (b) {
     b.addEventListener("click", function () { if (!articleEl.hidden) go(""); jump(b.dataset.jump); });
   });
