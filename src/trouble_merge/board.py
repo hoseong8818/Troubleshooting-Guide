@@ -79,7 +79,7 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 40px}
   var qEl = document.getElementById("q"), catsEl = document.getElementById("cats");
   var listEl = document.getElementById("list"), detailEl = document.getElementById("detail");
   var countEl = document.getElementById("count"), emptyEl = document.getElementById("empty");
-  var NEED = "확인 필요", cat = "", selected = -1;
+  var NEED = "확인 필요", cat = "", selected = -1, PAGE_SIZE = 100, limit = PAGE_SIZE;
   var WEIGHT = {"증상": 3, "원인": 3, "조치": 1, "설비": 2, "분류": 1, "기타 항목": 1};
 
   function text(v) { return v === null || v === undefined ? "" : String(v); }
@@ -118,7 +118,7 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 40px}
       var b = el("button", "chip", label + " (" + n + ")");
       b.type = "button";
       b.setAttribute("aria-pressed", String(cat === value));
-      b.addEventListener("click", function () { cat = value; selected = -1; render(); });
+      b.addEventListener("click", function () { cat = value; selected = -1; limit = PAGE_SIZE; render(); });
       catsEl.appendChild(b);
     }
     chip("전체", "", posts.length);
@@ -166,7 +166,7 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 40px}
     });
     if (tokens.length) found.sort(function (a, b) { return b.s - a.s || a.i - b.i; });
     listEl.textContent = "";
-    found.forEach(function (f) {
+    found.slice(0, limit).forEach(function (f) {
       var p = posts[f.i];
       var li = el("li");
       var b = el("button", "item");
@@ -180,7 +180,15 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 40px}
       li.appendChild(b);
       listEl.appendChild(li);
     });
-    countEl.textContent = found.length + "건";
+    if (found.length > limit) {
+      var moreLi = el("li");
+      var more = el("button", "chip", "더 보기 (" + (found.length - limit) + "건 남음)");
+      more.type = "button";
+      more.addEventListener("click", function () { limit += PAGE_SIZE; render(); });
+      moreLi.appendChild(more);
+      listEl.appendChild(moreLi);
+    }
+    countEl.textContent = found.length + "건" + (found.length > limit ? " (" + limit + "건 표시)" : "");
     emptyEl.hidden = found.length !== 0;
     if (!found.length || !found.some(function (f) { return f.i === selected; })) {
       selected = -1;
@@ -192,7 +200,7 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 40px}
       showDetail(selected);
     }
   }
-  qEl.addEventListener("input", render);
+  qEl.addEventListener("input", function () { limit = PAGE_SIZE; render(); });
   render();
 })();
 </script>
